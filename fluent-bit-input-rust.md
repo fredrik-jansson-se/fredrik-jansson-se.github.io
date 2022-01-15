@@ -1,5 +1,7 @@
 # Fluent Bit Input Plugin in Rust
 
+An example on how to write an input plugin for [Fluent Bit](https://fluentbit.io/) in Rust (with some C). All the code can be found [here](https://github.com/fredrik-jansson-se/fluent-bit-input-rust).
+
 ## Prerequisites
 You need to install:
  1. gcc/clang
@@ -14,7 +16,9 @@ You need to install:
 
 Fluent Bit loads input plugins from a shared library using a convention. Assume the input plugin is named `example`, fluent bit assumes the shared library to be named `flb-in_example.so`. From that library it will load a struct describing the plugin called `in_example_plugin`.
 
-This struct is defined in `csrc/in_example_plugin.c` and looks like
+I've tried to keep the C code to a absolut minimum.
+
+This struct is defined in [`csrc/in_example_plugin.c`](https://github.com/fredrik-jansson-se/fluent-bit-input-rust/blob/master/csrc/in_example_plugin.c) and looks like
 ``` c
 struct flb_input_plugin in_example_plugin = {
     .name         = "example",
@@ -51,6 +55,8 @@ static struct flb_config_map config_map[] = {
 ```
 
 ### Rust Code
+
+C bindings are generated using `bindgen`, please see [build.rs](https://github.com/fredrik-jansson-se/fluent-bit-input-rust/blob/master/build.rs).
 
 The `cb_init` function is called once by Fluent Bit. It allocates a "context", `FLBContext` that Fluent Bit provides in all callbacks after `cb_init`. The FLBContext is allocated on the heap and the leaked (`into_raw`) and handed over to Fluent Bit. Last, it calls `flb_input_set_collector_time` to indicate the callback interval for cb_collect.
 
@@ -156,4 +162,13 @@ pub unsafe extern "C" fn cb_collect(
 }
 ```
 
+## Testing the Code
+The Makefile will download Fluent Bit locally and build it.
+``` shell
+git clone git@github.com:fredrik-jansson-se/fluent-bit-input-rust.git
+cd fluent-bit-input-rust
+make all run
 
+```
+
+## Makefile Deep Dive
