@@ -35,7 +35,7 @@ struct flb_input_plugin in_example_plugin = {
 
 **NOTE**, name has to follow the naming convention, i.e. has to be `"example"`.
 
-The `cb_init`, `cb_collect` and `cb_exit` are callback functions called by Fluent Bit. We will actually implement those in Rust. Hence, they are just declared in the C code:
+The `cb_init`, `cb_collect` and `cb_exit` are callback functions called by Fluent Bit. We will actually implement those in Rust, hence, they are just declared in the C code:
 ``` c
 extern int cb_init(struct flb_input_instance *, struct flb_config *, void *);
 extern int cb_collect (struct flb_input_instance *, struct flb_config *, void *);
@@ -86,7 +86,7 @@ unsafe extern "C" fn cb_init(
 }
 ```
 
-At shutdown of Fluent Bit, `cb_exit` is called, we put the FLBContext back into a Box and drop it. If not, memory would had been leaked.
+At shutdown of Fluent Bit, `cb_exit` is called, to not leak memory, we put the FLBContext back into a Box and drop it.
 
 ``` rust
 #[no_mangle]
@@ -168,7 +168,32 @@ The Makefile will download Fluent Bit locally and build it.
 git clone git@github.com:fredrik-jansson-se/fluent-bit-input-rust.git
 cd fluent-bit-input-rust
 make all run
+...
+   Compiling in-example v0.1.0 (/tmp/fluent-bit-input-rust)
+    Finished release [optimized] target(s) in 9.25s
+cc -s -m64 -O2 -shared -o flb-in_example.so out/in_example_plugin.o target/release/libin_example.a
+fluent-bit/build/bin/fluent-bit -vv -e ./flb-in_example.so -i example -o stdout
+Fluent Bit v1.8.11
+* Copyright (C) 2019-2021 The Fluent Bit Authors
+* Copyright (C) 2015-2018 Treasure Data
+* Fluent Bit is a CNCF sub-project under the umbrella of Fluentd
+* https://fluentbit.io
 
+[2022/01/15 14:33:00] [ info] [engine] started (pid=2355956)
+[2022/01/15 14:33:00] [ info] [storage] version=1.1.5, initializing...
+[2022/01/15 14:33:00] [ info] [storage] in-memory
+[2022/01/15 14:33:00] [ info] [storage] normal synchronization mode, checksum disabled, max_chunks_up=128
+[2022/01/15 14:33:00] [ info] [cmetrics] version=0.2.2
+[2022/01/15 14:33:00] [ info] [sp] stream processor started
+[0] example.0: [1642253589.973281329, {"collect-calls"=>1}]
+[0] example.0: [1642253599.973229065, {"collect-calls"=>2}]
+```
+
+And then `<ctrl-c>` to break.
+```shell
+^C[2022/01/15 14:33:25] [engine] caught signal (SIGINT)
+[2022/01/15 14:33:25] [ warn] [engine] service will shutdown in max 5 seconds
+[2022/01/15 14:33:25] [ info] [engine] service has stopped (0 pending tasks)
 ```
 
 ## Makefile Deep Dive
