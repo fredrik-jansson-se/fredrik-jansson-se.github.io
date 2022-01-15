@@ -2,6 +2,8 @@
 
 An example on how to write an input plugin for [Fluent Bit](https://fluentbit.io/) in Rust (with some C). All the code can be found [here](https://github.com/fredrik-jansson-se/fluent-bit-input-rust).
 
+Fluent assumes input plugins are in a shared library and all examples I found are written in C. For work I had existing code in Rust that consumes logs from a proprietary source that we wanted to ingest in Fluent Bit. Below you'll find the scaffolding for writing a plugin with the bulk of the code in Rust.
+
 ## Prerequisites
 You need to install:
  1. gcc/clang
