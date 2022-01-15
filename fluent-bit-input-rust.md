@@ -10,6 +10,8 @@ You need to install:
 
 ## Code
 
+### C Code
+
 Fluent Bit loads input plugins from a shared library using a convention. Assume the input plugin is named `example`, fluent bit assumes the shared library to be named `flb-in_example.so`. From that library it will load a struct describing the plugin called `in_example_plugin`.
 
 This struct is defined in `csrc/in_example_plugin.c` and looks like
@@ -48,7 +50,9 @@ static struct flb_config_map config_map[] = {
 };
 ```
 
-In src/lib.rs
+### Rust Code
+
+The `cb_init` function is called once by Fluent Bit. It allocates a "context", `FLBContext` that Fluent Bit provides in all callbacks after `cb_init`. The FLBContext is allocated on the heap and the leaked (`into_raw`) and handed over to Fluent Bit. Last, it calls `flb_input_set_collector_time` to indicate the callback interval for cb_collect.
 
 ```rust
 #[no_mangle]
@@ -74,33 +78,26 @@ unsafe extern "C" fn cb_init(
 
     0
 }
+```
 
-fn get_config_string(
-    flb_input_instance: *mut bindings::flb_input_instance,
-    key: &str,
-    default: &str,
-) -> Result<String> {
-    let key = std::ffi::CString::new(key)?;
-    let s = unsafe { bindings::flb_input_get_property(key.as_ptr(), flb_input_instance) };
-    if !s.is_null() {
-        let value = unsafe { std::ffi::CStr::from_ptr(s) };
-        let value = value.to_str()?.parse()?;
-        Ok(value)
-    } else {
-        Ok(default.to_string())
-    }
+At shutdown of Fluent Bit, `cb_exit` is called, we put the FLBContext back into a Box and drop it. If not, memory would had been leaked.
+
+``` rust
+#[no_mangle]
+unsafe extern "C" fn cb_exit(
+    ctx: *mut std::os::raw::c_void,
+    _flb_config: *mut bindings::flb_config,
+) -> std::os::raw::c_int {
+    // Make sure we drop the CTX allocated in cb_init
+    let unboxed_ctx: &mut FLBContext = &mut *(ctx as *mut FLBContext);
+    drop(Box::from_raw(unboxed_ctx));
+    0
 }
+```
 
-// Se the C code, config_map, for declaring config params
-fn configure(
-    _ctx: &FLBContext,
-    flb_input_instance: *mut bindings::flb_input_instance,
-) -> Result<Config> {
-    let interval_sec = get_config_string(flb_input_instance, "interval_sec", "10")?.parse()?;
+At the configured interval, Fluent Bit will call `cb_collect` to gather logs. Logs are fed into Fluent using [MessagePack](https://msgpack.org/). I choose to use the `rmp` crate to do the packing in Rust and just hand the packed buffer to Fluent. The code gets the current time and adds a simple record `collect-calls`.
 
-    Ok(Config { interval_sec })
-}
-
+``` rust
 /// # Safety
 ///
 /// This function assumes cb_init has been called to initialze ctx
@@ -157,15 +154,6 @@ pub unsafe extern "C" fn cb_collect(
 
     res
 }
-
-#[no_mangle]
-unsafe extern "C" fn cb_exit(
-    ctx: *mut std::os::raw::c_void,
-    _flb_config: *mut bindings::flb_config,
-) -> std::os::raw::c_int {
-    // Make sure we drop the CTX allocated in cb_init
-    let unboxed_ctx: &mut FLBContext = &mut *(ctx as *mut FLBContext);
-    drop(Box::from_raw(unboxed_ctx));
-    0
-}
 ```
+
+
