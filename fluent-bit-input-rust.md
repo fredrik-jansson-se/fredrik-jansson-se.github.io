@@ -14,7 +14,7 @@ You need to install:
 
 ### C Code
 
-Fluent Bit loads input plugins from a shared library using a convention. Assume the input plugin is named `example`, fluent bit assumes the shared library to be named `flb-in_example.so`. From that library it will load a struct describing the plugin called `in_example_plugin`.
+Fluent Bit loads input plugins from a shared library using a convention. Assume the input plugin is named `example`, Fluent assumes the shared library to be named `flb-in_example.so`. From that library it will load a struct describing the plugin called `in_example_plugin`.
 
 I've tried to keep the C code to a absolut minimum.
 
@@ -59,6 +59,8 @@ static struct flb_config_map config_map[] = {
 C bindings are generated using `bindgen`, please see [build.rs](https://github.com/fredrik-jansson-se/fluent-bit-input-rust/blob/master/build.rs).
 
 All Rust code is compiled into a static library, the shared library is linked from the C and Rust code in the Makefile.
+
+The Rust callback functions has to be declared as `unsafe extern "C"` and also decorated with `#[no_mangle]` to prevent mangling of the function name.
 
 The `cb_init` function is called once by Fluent Bit. It allocates a "context", `FLBContext` that Fluent Bit provides in all callbacks after `cb_init`. The FLBContext is allocated on the heap and the leaked (`into_raw`) and handed over to Fluent Bit. Last, it calls `flb_input_set_collector_time` to indicate the callback interval for cb_collect.
 
