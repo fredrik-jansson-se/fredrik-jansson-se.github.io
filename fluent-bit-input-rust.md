@@ -26,3 +26,22 @@ struct flb_input_plugin in_example_plugin = {
     .cb_exit      = cb_exit,
 };
 ```
+
+The `cb_init`, `cb_collect` and `cb_exit` are callback functions called by Fluent Bit. We will actually implement those in Rust. Hence, they are just declared in the C code:
+``` c
+extern int cb_init(struct flb_input_instance *, struct flb_config *, void *);
+extern int cb_collect (struct flb_input_instance *, struct flb_config *, void *);
+extern int cb_exit (void *, struct flb_config *);
+```
+
+The `config_map` describes the configuration parameters the plugin accepts, in our simple example we have a single one that tells Fluent Bit how often to call `cb_collect`.
+``` c
+static struct flb_config_map config_map[] = {
+   {
+    FLB_CONFIG_MAP_INT, "interval_sec", "30",
+    0, FLB_FALSE, 0,
+    "Collect interval."
+   },
+   {0}
+};
+```
