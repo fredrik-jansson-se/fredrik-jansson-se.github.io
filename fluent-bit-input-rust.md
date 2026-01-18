@@ -1,4 +1,4 @@
-# Fluent Bit Input Plugin in Rust
+## Fluent Bit Input Plugin in Rust
 
 An example on how to write an input plugin for [Fluent Bit](https://fluentbit.io/) in Rust (with some C). All the code can be found [here](https://github.com/fredrik-jansson-se/fluent-bit-input-rust).
 
