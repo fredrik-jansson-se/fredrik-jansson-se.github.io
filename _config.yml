@@ -7,4 +7,4 @@ include:
   - README.md
   - fluent-bit-input-rust.md
 
-theme: minima
+theme: jekyll-theme-minima
